@@ -1,0 +1,235 @@
+// ============================================
+// Prisma Schema - Sistema de Biblioteca
+// ============================================
+// 
+// Conceitos Importantes:
+// 
+// 1. Models = Tabelas do banco de dados
+// 2. Relacionamentos:
+//    - 1:N (Um para Muitos) - @relation
+//    - N:N (Muitos para Muitos) - tabela implícita
+// 3. @id = Chave primária
+// 4. @unique = Campo único
+// 5. @default = Valor padrão
+// 6. @map = Nome customizado da coluna
+// 7. @@map = Nome customizado da tabela
+//
+// ============================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// Enums
+// ============================================
+
+enum UserRole {
+  ADMIN         // Administrador do sistema
+  LIBRARIAN     // Bibliotecário
+  MEMBER        // Membro/Leitor
+}
+
+enum LoanStatus {
+  ACTIVE        // Empréstimo ativo
+  RETURNED      // Devolvido
+  OVERDUE       // Atrasado
+}
+
+enum ReservationStatus {
+  PENDING       // Aguardando disponibilidade
+  CONFIRMED     // Confirmada (livro disponível)
+  CANCELLED     // Cancelada
+  FULFILLED     // Atendida (transformou em empréstimo)
+}
+
+enum FineStatus {
+  PENDING       // Pendente de pagamento
+  PAID          // Paga
+  CANCELLED     // Cancelada
+}
+
+// ============================================
+// User - Usuários do Sistema
+// ============================================
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String   // Hash bcrypt (Fase 4)
+  name      String
+  role      UserRole @default(MEMBER)
+  
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  // Relacionamentos
+  loans         Loan[]
+  reservations  Reservation[]
+  fines         Fine[]
+  
+  @@map("users")
+}
+
+// ============================================
+// Category - Categorias de Livros
+// ============================================
+
+model Category {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  // Relacionamentos (1:N)
+  books Book[]
+  
+  @@map("categories")
+}
+
+// ============================================
+// Author - Autores
+// ============================================
+
+model Author {
+  id        Int      @id @default(autoincrement())
+  name      String
+  biography String?  @db.Text
+  
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  // Relacionamentos (N:N com Books)
+  books BookAuthor[]
+  
+  @@map("authors")
+}
+
+// ============================================
+// Book - Livros
+// ============================================
+
+model Book {
+  id               Int      @id @default(autoincrement())
+  title            String
+  isbn             String   @unique
+  description      String?  @db.Text
+  publicationYear  Int      @map("publication_year")
+  totalCopies      Int      @map("total_copies")
+  availableCopies  Int      @map("available_copies")
+  
+  // Foreign Keys
+  categoryId Int @map("category_id")
+  
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  // Relacionamentos
+  category      Category       @relation(fields: [categoryId], references: [id])
+  authors       BookAuthor[]   // N:N com Authors
+  loans         Loan[]
+  reservations  Reservation[]
+  
+  @@map("books")
+}
+
+// ============================================
+// BookAuthor - Tabela de Junção (N:N)
+// Relacionamento Muitos-para-Muitos entre Books e Authors
+// ============================================
+
+model BookAuthor {
+  id       Int @id @default(autoincrement())
+  bookId   Int @map("book_id")
+  authorId Int @map("author_id")
+  
+  // Relacionamentos
+  book   Book   @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  author Author @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  
+  // Garante que um autor não seja adicionado duas vezes ao mesmo livro
+  @@unique([bookId, authorId])
+  @@map("book_authors")
+}
+
+// ============================================
+// Loan - Empréstimos
+// ============================================
+
+model Loan {
+  id              Int        @id @default(autoincrement())
+  userId          Int        @map("user_id")
+  bookId          Int        @map("book_id")
+  loanDate        DateTime   @default(now()) @map("loan_date")
+  dueDate         DateTime   @map("due_date")
+  returnDate      DateTime?  @map("return_date")
+  status          LoanStatus @default(ACTIVE)
+  renewalCount    Int        @default(0) @map("renewal_count") // Máximo 2
+  
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  // Relacionamentos
+  user  User @relation(fields: [userId], references: [id])
+  book  Book @relation(fields: [bookId], references: [id])
+  fines Fine[]
+  
+  @@map("loans")
+}
+
+// ============================================
+// Reservation - Reservas
+// ============================================
+
+model Reservation {
+  id              Int               @id @default(autoincrement())
+  userId          Int               @map("user_id")
+  bookId          Int               @map("book_id")
+  reservationDate DateTime          @default(now()) @map("reservation_date")
+  status          ReservationStatus @default(PENDING)
+  
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  // Relacionamentos
+  user User @relation(fields: [userId], references: [id])
+  book Book @relation(fields: [bookId], references: [id])
+  
+  @@map("reservations")
+}
+
+// ============================================
+// Fine - Multas
+// ============================================
+
+model Fine {
+  id          Int        @id @default(autoincrement())
+  userId      Int        @map("user_id")
+  loanId      Int        @map("loan_id")
+  amount      Float      // Valor da multa em reais
+  reason      String     // Motivo (atraso, dano, perda)
+  status      FineStatus @default(PENDING)
+  paidAt      DateTime?  @map("paid_at")
+  
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  // Relacionamentos
+  user User @relation(fields: [userId], references: [id])
+  loan Loan @relation(fields: [loanId], references: [id])
+  
+  @@map("fines")
+}

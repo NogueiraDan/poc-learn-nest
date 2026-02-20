@@ -1,0 +1,127 @@
+###############################################
+# API de Biblioteca - Testes de Endpoints Books
+# 
+# Como usar:
+# 1. Instale a extensão "REST Client" no VS Code
+# 2. Clique em "Send Request" acima de cada requisição
+# 3. Execute os requests na ordem para testar funcionalidades
+###############################################
+
+# Define a URL base da API
+@baseUrl = http://localhost:3000
+@bookId = 1
+
+###############################################
+# 1. SEED - Popular dados iniciais
+###############################################
+
+POST {{baseUrl}}/books/seed
+Content-Type: application/json
+
+###############################################
+# 2. LISTAR TODOS OS LIVROS
+###############################################
+
+GET {{baseUrl}}/books
+Content-Type: application/json
+
+###############################################
+# 3. BUSCAR LIVRO POR ID
+###############################################
+
+GET {{baseUrl}}/books/{{bookId}}
+Content-Type: application/json
+
+###############################################
+# 4. CRIAR UM NOVO LIVRO
+###############################################
+
+POST {{baseUrl}}/books
+Content-Type: application/json
+
+{
+  "title": "Domain-Driven Design",
+  "isbn": "978-0321125217",
+  "description": "Tackling Complexity in the Heart of Software",
+  "totalCopies": 2,
+  "publicationYear": 2003
+}
+
+###############################################
+# 5. CRIAR OUTRO LIVRO (Teste com dados diferentes)
+###############################################
+
+POST {{baseUrl}}/books
+Content-Type: application/json
+
+{
+  "title": "Refactoring",
+  "isbn": "978-0134757599",
+  "description": "Improving the Design of Existing Code",
+  "totalCopies": 3,
+  "publicationYear": 2018
+}
+
+###############################################
+# 6. ATUALIZAR LIVRO (PATCH)
+###############################################
+
+PATCH {{baseUrl}}/books/1
+Content-Type: application/json
+
+{
+  "description": "A Handbook of Agile Software Craftsmanship - Updated Edition",
+  "availableCopies": 4
+}
+
+###############################################
+# 7. ATUALIZAR APENAS O TÍTULO
+###############################################
+
+PATCH {{baseUrl}}/books/2
+Content-Type: application/json
+
+{
+  "title": "Design Patterns: Elements of Reusable OO Software [UPDATED]"
+}
+
+###############################################
+# 8. BUSCAR LIVRO QUE NÃO EXISTE (Teste de erro - 404)
+###############################################
+
+GET {{baseUrl}}/books/999
+Content-Type: application/json
+
+###############################################
+# 9. DELETAR UM LIVRO
+###############################################
+
+DELETE {{baseUrl}}/books/3
+Content-Type: application/json
+
+###############################################
+# 10. VERIFICAR SE O LIVRO FOI DELETADO (Deve retornar 404)
+###############################################
+
+GET {{baseUrl}}/books/3
+Content-Type: application/json
+
+###############################################
+# 11. CRIAR LIVRO COM DADOS INVÁLIDOS (Teste - na Fase 3 teremos validação)
+###############################################
+
+POST {{baseUrl}}/books
+Content-Type: application/json
+
+{
+  "title": "",
+  "isbn": "invalid",
+  "totalCopies": -1
+}
+
+###############################################
+# 12. HEALTH CHECK - Testar se a API está rodando
+###############################################
+
+GET {{baseUrl}}
+Content-Type: application/json

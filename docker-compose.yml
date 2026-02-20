@@ -1,0 +1,61 @@
+###########################################
+# Docker Compose - Desenvolvimento
+# 
+# Conceitos:
+# - PostgreSQL: Banco de dados relacional
+# - pgAdmin: Interface web para gerenciar PostgreSQL
+# - Volumes: Persistência de dados entre restarts
+# - Networks: Comunicação entre containers
+###########################################
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: poc-learn-nest-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nestjs
+      POSTGRES_PASSWORD: nestjs123
+      POSTGRES_DB: library_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - nest-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U nestjs -d library_db']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # pgAdmin - Interface Web para PostgreSQL
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: poc-learn-nest-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@library.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_LISTEN_PORT: 80
+    ports:
+      - '5050:80'
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - nest-network
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  nest-network:
+    driver: bridge
