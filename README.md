@@ -110,7 +110,7 @@ Este projeto utiliza tecnologias modernas e consolidadas do ecossistema Node.js:
 ### Core
 - **[NestJS](https://nestjs.com/)** 11 - Framework progressivo, opinativo e escalável para Node.js
 - **[TypeScript](https://www.typescriptlang.org/)** - Superset JavaScript com tipagem estática
-- **[Node.js](https://nodejs.org/)** 18+ - Runtime JavaScript assíncrono
+- **[Node.js](https://nodejs.org/)** 20+ - Runtime JavaScript assíncrono
 
 ### Database & ORM
 - **[PostgreSQL](https://www.postgresql.org/)** - Banco relacional robusto e feature-rich
@@ -146,7 +146,7 @@ Este projeto utiliza tecnologias modernas e consolidadas do ecossistema Node.js:
 
 O projeto possui pipeline automatizado que executa:
 
-- ✅ **Testes Unitários** em Node.js 18 e 20
+- ✅ **Testes Unitários** em Node.js 20.19+ e 22+
 - ✅ **Cobertura de Código** com relatórios automáticos
 - ✅ **Linting** e verificação de código
 - ✅ **Build** da aplicação
@@ -625,7 +625,7 @@ O projeto utiliza **GitHub Actions** para integração e entrega contínua:
 
 1. **CI Pipeline** (`.github/workflows/ci.yml`)
    - Executa em push/PR para branches main/master/develop
-   - Testa em Node.js 18 e 20
+   - Testa em Node.js 20.19+ e 22+
    - Roda linter, testes e build
    - Gera relatório de cobertura
    - Upload automático para Codecov
