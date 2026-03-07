@@ -35,6 +35,9 @@ import { LoansModule } from './loans/loans.module';
 import { ReservationsModule } from './reservations/reservations.module';
 import { LoggerMiddleware } from './common/middleware';
 import { HealthModule } from './health/health.module';
+import { MessagingModule } from './messaging/messaging.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { JobsModule } from './jobs/jobs.module';
 
 @Module({
   imports: [
@@ -53,6 +56,9 @@ import { HealthModule } from './health/health.module';
     BooksModule,
     LoansModule, // Fase 6 - Empréstimos
     ReservationsModule, // Fase 6 - Reservas
+    MessagingModule, // RabbitMQ - Message Broker
+    NotificationsModule, // Consumers de eventos (email, etc)
+    JobsModule, // Scheduled tasks (cronjobs)
     HealthModule, // Health Checks
   ],
   controllers: [AppController],

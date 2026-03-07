@@ -40,9 +40,10 @@
 | **Regras de Negócio** | 11 regras complexas (limite empréstimos, multas, filas FIFO) |
 | **Autenticação** | JWT (Access + Refresh) + RBAC (3 roles) |
 | **Database** | PostgreSQL + Prisma ORM (7 entidades) |
+| **Mensageria** | RabbitMQ (Event-Driven + Cronjobs) |
 | **Testes** | 153 unit tests, 73% coverage |
-| **Documentação** | Swagger + 900+ linhas de docs |
-| **Features** | Swagger, Security, Versioning, Health Checks |
+| **Documentação** | Swagger + 1000+ linhas de docs |
+| **Features** | Swagger, Security, Versioning, Health Checks, Async Jobs |
 | **Status** | ✅ Production-Ready |
 
 **📖 [Ver Regras de Negócio Detalhadas →](docs/BUSINESS-DOMAIN.md)**  
@@ -200,6 +201,22 @@ O projeto possui pipeline automatizado que executa:
 - **Tipos**: Atraso (automático), Dano (manual), Perda (manual)
 - **Bloqueio**: Multas pendentes impedem novos empréstimos
 
+### 🐰 Mensageria e Processamento Assíncrono
+- **RabbitMQ** como message broker para arquitetura orientada a eventos
+- **Event-Driven**: Módulos desacoplados se comunicam via eventos
+- **Notificações assíncronas**: 
+  - Confirmação de empréstimo (email)
+  - Lembrete de vencimento
+  - Notificação de atraso
+  - Reserva disponível
+  - Multa gerada
+- **Scheduled Jobs**: Cronjob diário verifica empréstimos atrasados
+- **Performance**: Respostas HTTP instantâneas (processamento em background)
+- **Escalabilidade**: Múltiplos consumers podem processar em paralelo
+- **Resiliência**: RabbitMQ garante entrega de mensagens
+
+📖 **[Ver documentação completa de mensageria →](docs/MESSAGING.md)**
+
 ## ✨ Enterprise Features
 
 Este projeto implementa features de **nível enterprise** para produção:
@@ -238,7 +255,7 @@ Este projeto implementa features de **nível enterprise** para produção:
 
 ## 📚 Documentação Completa
 
-Este projeto possui documentação extensa (900+ linhas) cobrindo todos os aspectos:
+Este projeto possui documentação extensa (1000+ linhas) cobrindo todos os aspectos:
 
 - **[📖 Domínio de Negócio](docs/BUSINESS-DOMAIN.md)** - **Leia primeiro!**
   - Regras de negócio detalhadas (11 regras principais)
@@ -253,6 +270,14 @@ Este projeto possui documentação extensa (900+ linhas) cobrindo todos os aspec
   - Interceptors e Middleware
   - API Versioning
   - Health Checks
+
+- **[🐰 Mensageria com RabbitMQ](docs/MESSAGING.md)** - **NOVO!**
+  - Event-Driven Architecture
+  - Processamento assíncrono
+  - Scheduled Jobs (Cronjobs)
+  - Notificações em background
+  - RabbitMQ vs Kafka
+  - [⚡ Quick Start Mensageria](docs/MESSAGING-QUICKSTART.md)
   
 - **[📊 Status do Projeto](docs/COMPLETED-FEATURES.md)** - Progresso e métricas
   - 11 fases completadas
@@ -272,6 +297,8 @@ Este repositório foi criado como **material de estudo e referência** para dese
 ✅ **Regras de negócio complexas** com validações em múltiplas camadas  
 ✅ **Testes abrangentes** com alta cobertura (73%)  
 ✅ **Features enterprise** prontas para produção  
+✅ **Event-Driven Architecture** com RabbitMQ  
+✅ **Processamento assíncrono** com scheduled jobs  
 ✅ **Documentação detalhada** de código e negócio  
 ✅ **Boas práticas** de TypeScript, NestJS e Prisma  
 ✅ **CI/CD configurado** com GitHub Actions  

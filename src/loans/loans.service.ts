@@ -9,6 +9,7 @@ import {
   Inject,
   forwardRef,
 } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CreateLoanDto,
@@ -19,6 +20,13 @@ import {
 import { Prisma } from '@prisma/client';
 import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
 import { ReservationsService } from '../reservations/reservations.service';
+import {
+  MESSAGING_EVENTS,
+  LoanCreatedEvent,
+  LoanReturnedEvent,
+  LoanRenewedEvent,
+  FineCreatedEvent,
+} from '../messaging';
 
 /**
  * Service para gerenciamento de empréstimos
@@ -43,6 +51,7 @@ export class LoansService {
     private prisma: PrismaService,
     @Inject(forwardRef(() => ReservationsService))
     private reservationsService: ReservationsService,
+    @Inject('RABBITMQ_SERVICE') private readonly rabbitClient: ClientProxy,
   ) {}
 
   /**
@@ -176,6 +185,19 @@ export class LoansService {
       return newLoan;
     });
 
+    // 🔥 MENSAGERIA: Emitir evento de empréstimo criado
+    const event: LoanCreatedEvent = {
+      loanId: loan.id,
+      userId: loan.user.id,
+      bookId: loan.book.id,
+      bookTitle: loan.book.title,
+      userName: loan.user.name,
+      userEmail: loan.user.email,
+      loanDate: loan.loanDate,
+      dueDate: loan.dueDate,
+    };
+    this.rabbitClient.emit(MESSAGING_EVENTS.LOAN_CREATED, event);
+
     return {
       message: 'Empréstimo realizado com sucesso',
       loan,
@@ -286,6 +308,33 @@ export class LoansService {
       console.error('Erro ao confirmar reserva:', error);
     }
 
+    // 🔥 MENSAGERIA: Emitir evento de devolução
+    const returnEvent: LoanReturnedEvent = {
+      loanId: result.loan.id,
+      userId: result.loan.user.id,
+      bookId: result.loan.book.id,
+      bookTitle: result.loan.book.title,
+      returnDate,
+      wasOverdue: isOverdue,
+      daysOverdue: isOverdue ? daysOverdue : undefined,
+      fineAmount: result.fine?.amount,
+    };
+    this.rabbitClient.emit(MESSAGING_EVENTS.LOAN_RETURNED, returnEvent);
+
+    // 🔥 MENSAGERIA: Se multa foi criada, emitir evento
+    if (result.fine) {
+      const fineEvent: FineCreatedEvent = {
+        fineId: result.fine.id,
+        userId: result.loan.user.id,
+        userEmail: result.loan.user.email,
+        userName: result.loan.user.name,
+        loanId: result.loan.id,
+        amount: result.fine.amount,
+        reason: result.fine.reason,
+      };
+      this.rabbitClient.emit(MESSAGING_EVENTS.FINE_CREATED, fineEvent);
+    }
+
     const message =
       isOverdue && result.fine
         ? `Livro devolvido com ${daysOverdue} dia(s) de atraso. Multa de R$ ${result.fine.amount.toFixed(2)} gerada.`
@@ -390,6 +439,18 @@ export class LoansService {
         book: { select: { id: true, title: true, isbn: true } },
       },
     });
+
+    // 🔥 MENSAGERIA: Emitir evento de renovação
+    const renewEvent: LoanRenewedEvent = {
+      loanId: updatedLoan.id,
+      userId: updatedLoan.user.id,
+      userEmail: updatedLoan.user.email,
+      userName: updatedLoan.user.name,
+      bookTitle: updatedLoan.book.title,
+      newDueDate: updatedLoan.dueDate,
+      renewalCount: updatedLoan.renewalCount,
+    };
+    this.rabbitClient.emit(MESSAGING_EVENTS.LOAN_RENEWED, renewEvent);
 
     return {
       message: `Empréstimo renovado com sucesso. Nova data de devolução: ${newDueDate.toISOString().split('T')[0]}`,

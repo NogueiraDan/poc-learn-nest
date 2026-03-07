@@ -15,6 +15,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter, PrismaExceptionFilter } from './common/filters';
@@ -22,6 +23,19 @@ import { LoggingInterceptor, TimeoutInterceptor } from './common/interceptors';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // RabbitMQ Microservice - Consumer de eventos
+  app.connectMicroservice<MicroserviceOptions>({
+    transport: Transport.RMQ,
+    options: {
+      urls: [process.env.RABBITMQ_URL || 'amqp://admin:admin123@localhost:5672'],
+      queue: 'library_queue',
+      queueOptions: {
+        durable: true,
+      },
+      prefetchCount: 10,
+    },
+  });
 
   // Segurança: Helmet - Define headers HTTP seguros
   app.use(
@@ -116,6 +130,10 @@ async function bootstrap() {
       'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui.css',
     ],
   });
+
+  // Iniciar microservices (RabbitMQ consumer)
+  await app.startAllMicroservices();
+  console.log('🐰 RabbitMQ Consumer conectado e ouvindo eventos...');
 
   await app.listen(process.env.PORT ?? 3000);
   console.log(

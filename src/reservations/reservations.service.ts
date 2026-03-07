@@ -3,11 +3,17 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  Inject,
 } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateReservationDto, QueryReservationsDto } from './dto';
 import { Prisma } from '@prisma/client';
 import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
+import {
+  MESSAGING_EVENTS,
+  ReservationConfirmedEvent,
+} from '../messaging';
 
 /**
  * Service para gerenciamento de reservas
@@ -21,7 +27,10 @@ import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
  */
 @Injectable()
 export class ReservationsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject('RABBITMQ_SERVICE') private readonly rabbitClient: ClientProxy,
+  ) {}
 
   /**
    * Criar nova reserva
@@ -215,12 +224,16 @@ export class ReservationsService {
       },
     });
 
-    // TODO: Enviar notificação para usuário (email, SMS, push)
-    // await this.notificationService.send({
-    //   to: confirmedReservation.user.email,
-    //   subject: 'Livro disponível para retirada',
-    //   body: `Olá ${confirmedReservation.user.name}, o livro "${confirmedReservation.book.title}" está disponível!`
-    // });
+    // 🔥 MENSAGERIA: Emitir evento de reserva confirmada
+    const event: ReservationConfirmedEvent = {
+      reservationId: confirmedReservation.id,
+      userId: confirmedReservation.user.id,
+      userEmail: confirmedReservation.user.email,
+      userName: confirmedReservation.user.name,
+      bookId: confirmedReservation.book.id,
+      bookTitle: confirmedReservation.book.title,
+    };
+    this.rabbitClient.emit(MESSAGING_EVENTS.RESERVATION_CONFIRMED, event);
 
     return {
       message: 'Reserva confirmada. Usuário foi notificado.',
