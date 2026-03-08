@@ -168,14 +168,171 @@ docker-compose restart rabbitmq
 
 O `EmailService` é um **mock** - apenas loga no console. Verifique os logs da aplicação.
 
+---
+
+## 💀 Testando Dead Letter Queue (DLQ)
+
+### **Passo 1: Simular Falha no Consumer**
+
+Edite `src/notifications/services/email.service.ts`:
+
+```typescript
+async sendLoanConfirmation(data: {
+  userEmail: string;
+  userName: string;
+  bookTitle: string;
+  dueDate: Date;
+}): Promise<void> {
+  // ⚠️ ERRO INTENCIONAL PARA TESTAR DLQ
+  throw new Error('FALHA SIMULADA PARA TESTE DE DLQ');
+  
+  this.logger.log(`
+    📧 ========== EMAIL ENVIADO ==========
+    Para: ${data.userEmail}
+    ...
+  `);
+}
+```
+
+### **Passo 2: Criar um Empréstimo**
+
+```bash
+curl -X POST http://localhost:3000/loans \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": "uuid-do-usuario",
+    "bookId": "uuid-do-livro"
+  }'
+```
+
+### **Passo 3: Observar Retries nos Logs**
+
+Você verá:
+
+```
+[NotificationsConsumer] 📥 Evento recebido: loan.created
+[NotificationsConsumer] ❌ Erro ao processar loan.created: FALHA SIMULADA PARA TESTE DE DLQ
+[NotificationsConsumer] 🔁 Tentativa 1/3 falhou. Reagendando em 1000ms...
+
+[NotificationsConsumer] 📥 Evento recebido: loan.created
+[NotificationsConsumer] ❌ Erro ao processar loan.created: FALHA SIMULADA PARA TESTE DE DLQ
+[NotificationsConsumer] 🔁 Tentativa 2/3 falhou. Reagendando em 2000ms...
+
+[NotificationsConsumer] 📥 Evento recebido: loan.created
+[NotificationsConsumer] ❌ Erro ao processar loan.created: FALHA SIMULADA PARA TESTE DE DLQ
+[NotificationsConsumer] 🔁 Tentativa 3/3 falhou. Reagendando em 4000ms...
+
+[NotificationsConsumer] 📥 Evento recebido: loan.created
+[NotificationsConsumer] ❌ Erro ao processar loan.created: FALHA SIMULADA PARA TESTE DE DLQ
+[NotificationsConsumer] 💀 Mensagem loan.created esgotou 3 tentativas. Enviando para DLQ...
+```
+
+### **Passo 4: Ver Mensagem na DLQ**
+
+```
+[DeadLetterConsumer] 💀 DEAD LETTER QUEUE - Mensagem morta recebida:
+   Evento original: loan.created
+   Primeira morte: 2025-02-20T12:34:56.789Z
+   Motivo: rejected
+   Fila origem: library_notifications
+   Payload: {"loanId": "...", "userEmail": "..."}
+
+[FailureMonitorService] 💀 ALERTA CRÍTICO: Mensagem em DLQ para evento loan.created
+```
+
+### **Passo 5: Verificar no RabbitMQ Management**
+
+1. Acesse: http://localhost:15672
+2. Vá em **Queues**
+3. Procure pela fila `library.dead` (Dead Letter Queue)
+4. Veja as mensagens que falharam
+
+**Você verá:**
+- **library_notifications** - Fila principal (vazia após processar)
+- **library.dead** - DLQ com a mensagem que falhou
+
+### **Passo 6: Restaurar o Código**
+
+Remova o erro simulado:
+
+```typescript
+async sendLoanConfirmation(data: ...): Promise<void> {
+  // Remover a linha do throw
+  this.logger.log(`
+    📧 ========== EMAIL ENVIADO ==========
+    ...
+  `);
+}
+```
+
+### **Passo 7: Testando Sucesso Após Retry**
+
+Para testar uma falha que se recupera:
+
+```typescript
+private failureCount = 0;
+
+async sendLoanConfirmation(data: ...): Promise<void> {
+  // Falhar nas primeiras 2 tentativas, sucesso na 3ª
+  this.failureCount++;
+  if (this.failureCount <= 2) {
+    throw new Error(`Falha simulada ${this.failureCount}/2`);
+  }
+  
+  this.logger.log(`
+    📧 ========== EMAIL ENVIADO (após ${this.failureCount} tentativas) ==========
+    ...
+  `);
+  
+  this.failureCount = 0; // Reset para próxima mensagem
+}
+```
+
+**Resultado esperado:**
+```
+[NotificationsConsumer] 🔁 Tentativa 1/3 falhou. Reagendando...
+[NotificationsConsumer] 🔁 Tentativa 2/3 falhou. Reagendando...
+[NotificationsConsumer] ✅ Email de confirmação enviado (após retry)
+[FailureMonitorService] ✅ Sucesso após 2 retries para evento loan.created
+```
+
+### **Métricas de DLQ**
+
+Para ver estatísticas de falhas:
+
+```typescript
+// Em algum endpoint ou cronjob
+const stats = this.failureMonitor.getStats();
+console.log(stats);
+```
+
+**Output:**
+```json
+{
+  "loan.created": [
+    {
+      "timestamp": "2025-02-20T12:34:56.789Z",
+      "error": "FALHA SIMULADA PARA TESTE DE DLQ",
+      "retryCount": 1
+    }
+  ]
+}
+```
+
+---
+
 ## 📊 Métricas de Sucesso
 
 Se tudo estiver OK, você deve ver:
 
 ✅ RabbitMQ rodando na porta 5672  
 ✅ Management UI acessível em http://localhost:15672  
-✅ Fila `library_queue` criada  
+✅ Fila `library_notifications` criada  
+✅ Fila `library.dead` (DLQ) criada  
 ✅ Eventos sendo emitidos e recebidos  
+✅ Retries automáticos com backoff exponencial  
+✅ Mensagens falhadas indo para DLQ  
+✅ Alertas de falhas no console  
 ✅ Logs de emails no console  
 ✅ Cronjob executando (se configurado)  
 
