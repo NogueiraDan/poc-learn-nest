@@ -1,14 +1,10 @@
+/* eslint-disable @typescript-eslint/require-await */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Controller, Logger } from '@nestjs/common';
 import { EventPattern, Payload, Ctx, RmqContext } from '@nestjs/microservices';
-import {
-  MESSAGING_EVENTS,
-  LoanCreatedEvent,
-  LoanReturnedEvent,
-  LoanRenewedEvent,
-  LoanOverdueEvent,
-  ReservationConfirmedEvent,
-  FineCreatedEvent,
-} from '../messaging';
+import * as messaging from '../messaging';
 import { EmailService } from './services/email.service';
 import { FailureMonitorService } from './services/failure-monitor.service';
 
@@ -45,12 +41,12 @@ export class NotificationsConsumer {
 
   /**
    * Processa mensagem com retry automático
-   * 
+   *
    * Conceitos:
    * - Retry Logic: Tentar novamente em caso de falha
    * - Exponential Backoff: Aumentar delay entre tentativas
    * - Circuit Breaker: Prevenir sobrecarga do sistema
-   * 
+   *
    * Fluxo:
    * 1. Tenta processar
    * 2. Se falhar, aguarda e tenta novamente (backoff exponencial)
@@ -66,7 +62,7 @@ export class NotificationsConsumer {
     const channel = context.getChannelRef();
     const originalMsg = context.getMessage();
     const headers = (originalMsg as any).properties?.headers || {};
-    
+
     // Contador de tentativas (RabbitMQ rastreia automaticamente)
     const retryCount = headers['x-retry-count'] || 0;
 
@@ -85,13 +81,18 @@ export class NotificationsConsumer {
       this.logger.error(`❌ Erro ao processar ${eventName}:`, error.message);
 
       // Registrar falha
-      this.failureMonitor.recordFailure(eventName, error, payload, retryCount + 1);
+      this.failureMonitor.recordFailure(
+        eventName,
+        error,
+        payload,
+        retryCount + 1,
+      );
 
       // Verificar se ainda pode tentar novamente
       if (retryCount < this.MAX_RETRIES) {
         // Calcular delay com backoff exponencial
         const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s, 8s...
-        
+
         this.logger.warn(
           `🔁 Tentativa ${retryCount + 1}/${this.MAX_RETRIES} falhou. Reagendando em ${delay}ms...`,
         );
@@ -122,16 +123,18 @@ export class NotificationsConsumer {
    * Evento: Empréstimo criado
    * Envia email de confirmação para o usuário
    */
-  @EventPattern(MESSAGING_EVENTS.LOAN_CREATED)
+  @EventPattern(messaging.MESSAGING_EVENTS.LOAN_CREATED)
   async handleLoanCreated(
-    @Payload() data: LoanCreatedEvent,
+    @Payload() data: messaging.LoanCreatedEvent,
     @Ctx() context: RmqContext,
   ) {
-    this.logger.log(`📥 Evento recebido: ${MESSAGING_EVENTS.LOAN_CREATED}`);
+    this.logger.log(
+      `📥 Evento recebido: ${messaging.MESSAGING_EVENTS.LOAN_CREATED}`,
+    );
     this.logger.debug(`   Dados: ${JSON.stringify(data)}`);
 
     await this.processWithRetry(
-      MESSAGING_EVENTS.LOAN_CREATED,
+      messaging.MESSAGING_EVENTS.LOAN_CREATED,
       data,
       context,
       async (payload) => {
@@ -153,16 +156,18 @@ export class NotificationsConsumer {
    * Evento: Empréstimo devolvido
    * Se houver multa, envia notificação
    */
-  @EventPattern(MESSAGING_EVENTS.LOAN_RETURNED)
+  @EventPattern(messaging.MESSAGING_EVENTS.LOAN_RETURNED)
   async handleLoanReturned(
-    @Payload() data: LoanReturnedEvent,
+    @Payload() data: messaging.LoanReturnedEvent,
     @Ctx() context: RmqContext,
   ) {
-    this.logger.log(`📥 Evento recebido: ${MESSAGING_EVENTS.LOAN_RETURNED}`);
+    this.logger.log(
+      `📥 Evento recebido: ${messaging.MESSAGING_EVENTS.LOAN_RETURNED}`,
+    );
     this.logger.debug(`   Dados: ${JSON.stringify(data)}`);
 
     await this.processWithRetry(
-      MESSAGING_EVENTS.LOAN_RETURNED,
+      messaging.MESSAGING_EVENTS.LOAN_RETURNED,
       data,
       context,
       async (payload) => {
@@ -181,16 +186,18 @@ export class NotificationsConsumer {
    * Evento: Empréstimo renovado
    * Envia confirmação de renovação
    */
-  @EventPattern(MESSAGING_EVENTS.LOAN_RENEWED)
+  @EventPattern(messaging.MESSAGING_EVENTS.LOAN_RENEWED)
   async handleLoanRenewed(
-    @Payload() data: LoanRenewedEvent,
+    @Payload() data: messaging.LoanRenewedEvent,
     @Ctx() context: RmqContext,
   ) {
-    this.logger.log(`📥 Evento recebido: ${MESSAGING_EVENTS.LOAN_RENEWED}`);
+    this.logger.log(
+      `📥 Evento recebido: ${messaging.MESSAGING_EVENTS.LOAN_RENEWED}`,
+    );
     this.logger.debug(`   Dados: ${JSON.stringify(data)}`);
 
     await this.processWithRetry(
-      MESSAGING_EVENTS.LOAN_RENEWED,
+      messaging.MESSAGING_EVENTS.LOAN_RENEWED,
       data,
       context,
       async (payload) => {
@@ -211,16 +218,18 @@ export class NotificationsConsumer {
    * Evento: Empréstimo atrasado
    * Disparado por cronjob diário
    */
-  @EventPattern(MESSAGING_EVENTS.LOAN_OVERDUE)
+  @EventPattern(messaging.MESSAGING_EVENTS.LOAN_OVERDUE)
   async handleLoanOverdue(
-    @Payload() data: LoanOverdueEvent,
+    @Payload() data: messaging.LoanOverdueEvent,
     @Ctx() context: RmqContext,
   ) {
-    this.logger.log(`📥 Evento recebido: ${MESSAGING_EVENTS.LOAN_OVERDUE}`);
+    this.logger.log(
+      `📥 Evento recebido: ${messaging.MESSAGING_EVENTS.LOAN_OVERDUE}`,
+    );
     this.logger.debug(`   Dados: ${JSON.stringify(data)}`);
 
     await this.processWithRetry(
-      MESSAGING_EVENTS.LOAN_OVERDUE,
+      messaging.MESSAGING_EVENTS.LOAN_OVERDUE,
       data,
       context,
       async (payload) => {
@@ -241,18 +250,18 @@ export class NotificationsConsumer {
    * Evento: Reserva confirmada
    * Livro ficou disponível, usuário pode retirar
    */
-  @EventPattern(MESSAGING_EVENTS.RESERVATION_CONFIRMED)
+  @EventPattern(messaging.MESSAGING_EVENTS.RESERVATION_CONFIRMED)
   async handleReservationConfirmed(
-    @Payload() data: ReservationConfirmedEvent,
+    @Payload() data: messaging.ReservationConfirmedEvent,
     @Ctx() context: RmqContext,
   ) {
     this.logger.log(
-      `📥 Evento recebido: ${MESSAGING_EVENTS.RESERVATION_CONFIRMED}`,
+      `📥 Evento recebido: ${messaging.MESSAGING_EVENTS.RESERVATION_CONFIRMED}`,
     );
     this.logger.debug(`   Dados: ${JSON.stringify(data)}`);
 
     await this.processWithRetry(
-      MESSAGING_EVENTS.RESERVATION_CONFIRMED,
+      messaging.MESSAGING_EVENTS.RESERVATION_CONFIRMED,
       data,
       context,
       async (payload) => {
@@ -271,16 +280,18 @@ export class NotificationsConsumer {
    * Evento: Multa criada
    * Notifica usuário sobre a multa gerada
    */
-  @EventPattern(MESSAGING_EVENTS.FINE_CREATED)
+  @EventPattern(messaging.MESSAGING_EVENTS.FINE_CREATED)
   async handleFineCreated(
-    @Payload() data: FineCreatedEvent,
+    @Payload() data: messaging.FineCreatedEvent,
     @Ctx() context: RmqContext,
   ) {
-    this.logger.log(`📥 Evento recebido: ${MESSAGING_EVENTS.FINE_CREATED}`);
+    this.logger.log(
+      `📥 Evento recebido: ${messaging.MESSAGING_EVENTS.FINE_CREATED}`,
+    );
     this.logger.debug(`   Dados: ${JSON.stringify(data)}`);
 
     await this.processWithRetry(
-      MESSAGING_EVENTS.FINE_CREATED,
+      messaging.MESSAGING_EVENTS.FINE_CREATED,
       data,
       context,
       async (payload) => {
