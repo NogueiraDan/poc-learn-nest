@@ -9,6 +9,7 @@
 ###########################################
 
 version: '3.8'
+name: poc-library-nest
 
 services:
   # PostgreSQL Database
@@ -25,7 +26,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - nest-network
+      - poc-nest-network
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U nestjs -d library_db']
       interval: 10s
@@ -46,7 +47,7 @@ services:
     volumes:
       - pgadmin_data:/var/lib/pgadmin
     networks:
-      - nest-network
+      - poc-nest-network
     depends_on:
       - postgres
 
@@ -65,7 +66,7 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:
-      - nest-network
+      - poc-nest-network
     healthcheck:
       test: ['CMD', 'rabbitmq-diagnostics', 'ping']
       interval: 10s
@@ -75,14 +76,14 @@ services:
 volumes:
   postgres_data:
     driver: local
-    name: poc-learn-nest-postgres-data
+    name: poc-nest-postgres-data
   pgadmin_data:
     driver: local
-    name: poc-learn-nest-pgadmin-data
+    name: poc-nest-pgadmin-data
   rabbitmq_data:
     driver: local
-    name: poc-learn-nest-rabbitmq-data
+    name: poc-nest-rabbitmq-data
 
 networks:
-  nest-network:
+  poc-nest-network:
     driver: bridge
