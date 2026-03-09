@@ -15,7 +15,7 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
-    container_name: poc-learn-nest-db
+    container_name: poc-nest-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: nestjs
@@ -36,7 +36,7 @@ services:
   # pgAdmin - Interface Web para PostgreSQL
   pgadmin:
     image: dpage/pgadmin4:latest
-    container_name: poc-learn-nest-pgadmin
+    container_name: poc-nest-pgadmin
     restart: unless-stopped
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@library.com
@@ -49,12 +49,12 @@ services:
     networks:
       - poc-nest-network
     depends_on:
-      - postgres
+      - poc-nest-postgres
 
   # RabbitMQ - Message Broker
   rabbitmq:
     image: rabbitmq:3.13-management-alpine
-    container_name: poc-learn-nest-rabbitmq
+    container_name: poc-nest-rabbitmq
     restart: unless-stopped
     environment:
       RABBITMQ_DEFAULT_USER: admin
