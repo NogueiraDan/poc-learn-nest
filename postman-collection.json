@@ -1,0 +1,1150 @@
+{
+	"info": {
+		"_postman_id": "library-api-collection-2026",
+		"name": "Library Management System - NestJS",
+		"description": "Collection completa da API de gerenciamento de biblioteca.\n\n**Recursos:**\n- 40+ endpoints organizados por módulo\n- Autenticação JWT automática\n- Exemplos de requisições prontos\n- Scripts de teste para capturar tokens\n- Variáveis de ambiente configuradas\n\n**Como usar:**\n1. Configure as variáveis de ambiente (baseURL, etc.)\n2. Execute o login (pasta Auth)\n3. O token será salvo automaticamente\n4. Use os outros endpoints normalmente",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Register (Public)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Salvar tokens automaticamente",
+									"if (pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set('accessToken', jsonData.accessToken);",
+									"    pm.environment.set('refreshToken', jsonData.refreshToken);",
+									"    pm.environment.set('userId', jsonData.user.id);",
+									"    pm.environment.set('userRole', jsonData.user.role);",
+									"    console.log('✅ Tokens salvos! Role:', jsonData.user.role);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"João Silva\",\n  \"email\": \"joao@example.com\",\n  \"password\": \"senha123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/auth/register",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "auth", "register"]
+						},
+						"description": "Registra um novo usuário no sistema.\n\n**Role padrão:** MEMBER\n\n**Regras:**\n- Email deve ser único\n- Senha mínima: 6 caracteres\n- Nome mínimo: 3 caracteres"
+					},
+					"response": []
+				},
+				{
+					"name": "Login (Public)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Salvar tokens automaticamente",
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set('accessToken', jsonData.accessToken);",
+									"    pm.environment.set('refreshToken', jsonData.refreshToken);",
+									"    pm.environment.set('userId', jsonData.user.id);",
+									"    pm.environment.set('userRole', jsonData.user.role);",
+									"    console.log('✅ Login bem-sucedido! Role:', jsonData.user.role);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"joao@example.com\",\n  \"password\": \"senha123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/auth/login",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "auth", "login"]
+						},
+						"description": "Autentica um usuário e retorna tokens JWT.\n\n**Retorna:**\n- accessToken (válido por 1h)\n- refreshToken (válido por 7 dias)\n- Informações do usuário"
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh Token (Public)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Atualizar access token",
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set('accessToken', jsonData.accessToken);",
+									"    pm.environment.set('refreshToken', jsonData.refreshToken);",
+									"    console.log('✅ Tokens renovados!');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/auth/refresh",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "auth", "refresh"]
+						},
+						"description": "Renova o access token usando um refresh token válido.\n\n**Quando usar:**\n- Access token expirou (erro 401)\n- Antes de expirar (renovação preventiva)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Profile (Protected)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/v1/auth/me",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "auth", "me"]
+						},
+						"description": "Retorna informações do usuário autenticado.\n\n**Requer:** JWT válido no header Authorization"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints de autenticação e autorização.\n\n**Fluxo:**\n1. Register/Login → Recebe tokens\n2. Usa accessToken em outras requisições\n3. Quando expirar → Refresh token"
+		},
+		{
+			"name": "Books",
+			"item": [
+				{
+					"name": "Create Book (ADMIN/LIBRARIAN)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Clean Code\",\n  \"isbn\": \"978-0132350884\",\n  \"description\": \"Um guia prático para escrever código limpo e manutenível\",\n  \"totalCopies\": 5,\n  \"publicationYear\": 2008,\n  \"categoryId\": 1,\n  \"authorIds\": [1, 2]\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/books",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "books"]
+						},
+						"description": "Cria um novo livro no acervo.\n\n**Permissões:** ADMIN ou LIBRARIAN\n\n**Validações:**\n- ISBN único\n- totalCopies >= 1\n- Categoria e autores devem existir"
+					},
+					"response": []
+				},
+				{
+					"name": "List Books (Public)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/v1/books?page=1&limit=10",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "books"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Número da página"
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Items por página (max: 100)"
+								},
+								{
+									"key": "search",
+									"value": "Clean Code",
+									"description": "Busca por título, ISBN ou descrição",
+									"disabled": true
+								},
+								{
+									"key": "categoryId",
+									"value": "1",
+									"description": "Filtrar por categoria",
+									"disabled": true
+								},
+								{
+									"key": "authorId",
+									"value": "1",
+									"description": "Filtrar por autor",
+									"disabled": true
+								},
+								{
+									"key": "available",
+									"value": "true",
+									"description": "Apenas livros disponíveis",
+									"disabled": true
+								},
+								{
+									"key": "yearFrom",
+									"value": "2000",
+									"description": "Ano mínimo",
+									"disabled": true
+								},
+								{
+									"key": "yearTo",
+									"value": "2024",
+									"description": "Ano máximo",
+									"disabled": true
+								},
+								{
+									"key": "sortBy",
+									"value": "title",
+									"description": "Ordenar por: title, isbn, publicationYear, createdAt",
+									"disabled": true
+								},
+								{
+									"key": "sortOrder",
+									"value": "asc",
+									"description": "asc ou desc",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Lista todos os livros com filtros opcionais.\n\n**Público:** Não requer autenticação\n\n**Paginação:**\n- Padrão: 10 items por página\n- Máximo: 100 items por página"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Book by ID (Public)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/v1/books/1",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "books", "1"]
+						},
+						"description": "Busca um livro específico por ID.\n\n**Retorna:**\n- Informações completas do livro\n- Categoria\n- Lista de autores\n- Disponibilidade"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Book (ADMIN/LIBRARIAN)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Clean Code - Updated\",\n  \"description\": \"Descrição atualizada\",\n  \"totalCopies\": 10\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/books/1",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "books", "1"]
+						},
+						"description": "Atualiza informações de um livro.\n\n**Permissões:** ADMIN ou LIBRARIAN\n\n**Campos opcionais:**\n- Envie apenas os campos que deseja atualizar"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Book (ADMIN/LIBRARIAN)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/v1/books/1",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "books", "1"]
+						},
+						"description": "Remove um livro do acervo.\n\n**Permissões:** ADMIN ou LIBRARIAN\n\n**Validações:**\n- Não pode ter empréstimos ativos\n- Não pode ter reservas pendentes"
+					},
+					"response": []
+				}
+			],
+			"description": "Gerenciamento do acervo de livros.\n\n**Permissões:**\n- GET: Público\n- POST/PATCH/DELETE: ADMIN ou LIBRARIAN"
+		},
+		{
+			"name": "Authors",
+			"item": [
+				{
+					"name": "Create Author (ADMIN/LIBRARIAN)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Robert C. Martin\",\n  \"bio\": \"Engenheiro de software, autor e palestrante conhecido como Uncle Bob\",\n  \"birthDate\": \"1952-12-05\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/authors",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "authors"]
+						},
+						"description": "Cadastra um novo autor.\n\n**Permissões:** ADMIN ou LIBRARIAN"
+					},
+					"response": []
+				},
+				{
+					"name": "List Authors (Public)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/v1/authors?page=1&limit=10",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "authors"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "search",
+									"value": "Martin",
+									"description": "Busca por nome",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Lista todos os autores com paginação."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Author by ID (Public)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/v1/authors/1",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "authors", "1"]
+						},
+						"description": "Busca um autor específico por ID.\n\n**Retorna:**\n- Informações do autor\n- Lista de livros do autor"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Author (ADMIN/LIBRARIAN)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"bio\": \"Bio atualizada do autor\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/authors/1",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "authors", "1"]
+						},
+						"description": "Atualiza informações de um autor."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Author (ADMIN/LIBRARIAN)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/v1/authors/1",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "authors", "1"]
+						},
+						"description": "Remove um autor do sistema."
+					},
+					"response": []
+				}
+			],
+			"description": "Gerenciamento de autores de livros."
+		},
+		{
+			"name": "Categories",
+			"item": [
+				{
+					"name": "Create Category (ADMIN/LIBRARIAN)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Tecnologia\",\n  \"description\": \"Livros sobre programação, engenharia de software e tecnologia\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/categories",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "categories"]
+						},
+						"description": "Cria uma nova categoria de livros."
+					},
+					"response": []
+				},
+				{
+					"name": "List Categories (Public)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/v1/categories?page=1&limit=10",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "categories"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "search",
+									"value": "Tecnologia",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Lista todas as categorias disponíveis."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Category by ID (Public)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/v1/categories/1",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "categories", "1"]
+						},
+						"description": "Busca uma categoria específica.\n\n**Retorna:**\n- Informações da categoria\n- Quantidade de livros"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Category (ADMIN/LIBRARIAN)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"description\": \"Descrição atualizada da categoria\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/categories/1",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "categories", "1"]
+						},
+						"description": "Atualiza uma categoria existente."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Category (ADMIN/LIBRARIAN)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/v1/categories/1",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "categories", "1"]
+						},
+						"description": "Remove uma categoria.\n\n**Validação:**\n- Não pode ter livros associados"
+					},
+					"response": []
+				}
+			],
+			"description": "Gerenciamento de categorias de livros."
+		},
+		{
+			"name": "Loans",
+			"item": [
+				{
+					"name": "Create Loan (ADMIN/LIBRARIAN)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userId\": 1,\n  \"bookId\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/loans",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "loans"]
+						},
+						"description": "Cria um novo empréstimo.\n\n**Validações automáticas:**\n- Livro deve estar disponível (availableCopies > 0)\n- Usuário não pode ter empréstimos atrasados\n- Usuário não pode ter multas pendentes\n- Limite de 3 empréstimos simultâneos\n\n**Prazo:** 14 dias (calculado automaticamente)"
+					},
+					"response": []
+				},
+				{
+					"name": "List Loans (ADMIN/LIBRARIAN)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/v1/loans?status=ACTIVE&page=1&limit=10",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "loans"],
+							"query": [
+								{
+									"key": "status",
+									"value": "ACTIVE",
+									"description": "ACTIVE, RETURNED, OVERDUE"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "userId",
+									"value": "1",
+									"description": "Filtrar por usuário",
+									"disabled": true
+								},
+								{
+									"key": "bookId",
+									"value": "1",
+									"description": "Filtrar por livro",
+									"disabled": true
+								},
+								{
+									"key": "overdue",
+									"value": "true",
+									"description": "Apenas atrasados",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Lista todos os empréstimos com filtros."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Loan by ID (ADMIN/LIBRARIAN)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/v1/loans/1",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "loans", "1"]
+						},
+						"description": "Busca um empréstimo específico.\n\n**Retorna:**\n- Informações completas do empréstimo\n- Dados do usuário\n- Dados do livro\n- Multas relacionadas (se houver)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Loan Stats (ADMIN/LIBRARIAN)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/v1/loans/user/1/stats",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "loans", "user", "1", "stats"]
+						},
+						"description": "Retorna estatísticas de empréstimos de um usuário.\n\n**Retorna:**\n- Total de empréstimos\n- Empréstimos ativos\n- Empréstimos atrasados\n- Histórico completo\n- Multas pendentes"
+					},
+					"response": []
+				},
+				{
+					"name": "Return Book (ADMIN/LIBRARIAN)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"returnDate\": \"2026-03-09\"\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/loans/1/return",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "loans", "1", "return"]
+						},
+						"description": "Registra a devolução de um livro.\n\n**Processo automático:**\n1. Calcula dias de atraso\n2. Gera multa se atrasado (R$ 2,00/dia)\n3. Atualiza estoque (+1 availableCopies)\n4. Confirma próxima reserva na fila (se houver)\n\n**returnDate:** Opcional, padrão é data/hora atual"
+					},
+					"response": []
+				},
+				{
+					"name": "Renew Loan (ADMIN/LIBRARIAN)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"additionalDays\": 14\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/loans/1/renew",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "loans", "1", "renew"]
+						},
+						"description": "Renova um empréstimo (estende o prazo).\n\n**Limitações:**\n- Máximo 2 renovações por empréstimo\n- Não pode ter multas pendentes\n- Não pode ter reservas para o livro\n- Empréstimo deve estar ativo\n\n**additionalDays:** Opcional, padrão é 14 dias"
+					},
+					"response": []
+				}
+			],
+			"description": "Sistema de empréstimos de livros.\n\n**Regras de Negócio:**\n- Limite de 3 empréstimos simultâneos\n- Prazo de 14 dias\n- Multa de R$ 2,00/dia de atraso\n- Máximo 2 renovações"
+		},
+		{
+			"name": "Reservations",
+			"item": [
+				{
+					"name": "Create Reservation (ADMIN/LIBRARIAN)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userId\": 1,\n  \"bookId\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/v1/reservations",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "reservations"]
+						},
+						"description": "Cria uma nova reserva na fila.\n\n**Validações:**\n- Livro deve estar indisponível (availableCopies = 0)\n- Usuário não pode ter reserva duplicada\n- Usuário não pode reservar livro já emprestado por ele\n\n**Retorna:** Posição na fila (sistema FIFO)"
+					},
+					"response": []
+				},
+				{
+					"name": "List Reservations (ADMIN/LIBRARIAN)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/v1/reservations?status=PENDING&page=1&limit=10",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "reservations"],
+							"query": [
+								{
+									"key": "status",
+									"value": "PENDING",
+									"description": "PENDING, CONFIRMED, FULFILLED, CANCELLED"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "userId",
+									"value": "1",
+									"description": "Filtrar por usuário",
+									"disabled": true
+								},
+								{
+									"key": "bookId",
+									"value": "1",
+									"description": "Filtrar por livro",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Lista todas as reservas com filtros."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Reservation by ID (ADMIN/LIBRARIAN)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/v1/reservations/1",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "reservations", "1"]
+						},
+						"description": "Busca uma reserva específica.\n\n**Retorna:**\n- Informações da reserva\n- Posição atual na fila (se PENDING)\n- Dados do usuário e livro"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Book Queue (ADMIN/LIBRARIAN)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/v1/reservations/book/1/queue",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "reservations", "book", "1", "queue"]
+						},
+						"description": "Retorna a fila de espera completa de um livro.\n\n**Retorna:**\n- Informações do livro\n- Tamanho da fila\n- Lista ordenada de reservas (FIFO)\n- Próximo na fila"
+					},
+					"response": []
+				},
+				{
+					"name": "Cancel Reservation (ADMIN/LIBRARIAN)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/v1/reservations/1/cancel",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "reservations", "1", "cancel"]
+						},
+						"description": "Cancela uma reserva.\n\n**Pode cancelar:**\n- Reservas PENDING\n- Reservas CONFIRMED\n\n**Efeito:**\n- Remove da fila\n- Próximo usuário avança"
+					},
+					"response": []
+				},
+				{
+					"name": "Fulfill Reservation (ADMIN/LIBRARIAN)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/v1/reservations/1/fulfill",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "reservations", "1", "fulfill"]
+						},
+						"description": "Marca reserva como atendida (FULFILLED).\n\n**Uso:**\n- Quando usuário completa o empréstimo da reserva\n- Transição: CONFIRMED → FULFILLED"
+					},
+					"response": []
+				}
+			],
+			"description": "Sistema de reservas (fila de espera) para livros.\n\n**Funcionamento:**\n1. Livro indisponível → Usuário faz reserva\n2. Livro devolvido → Primeira reserva confirmada automaticamente\n3. Usuário pode emprestar → Marca como FULFILLED"
+		},
+		{
+			"name": "Health",
+			"item": [
+				{
+					"name": "Health Check Complete (Public)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/v1/health",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "health"]
+						},
+						"description": "Verifica a saúde completa da aplicação.\n\n**Verifica:**\n- Database (Prisma connection)\n- Memory (heap usage)\n- Disk space\n\n**Uso:**\n- Monitoring tools (Datadog, New Relic)\n- Load balancers"
+					},
+					"response": []
+				},
+				{
+					"name": "Liveness Probe (Public)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/v1/health/liveness",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "health", "liveness"]
+						},
+						"description": "Kubernetes liveness probe.\n\n**Pergunta:** A aplicação está rodando?\n\n**Uso:**\n- Kubernetes decide se deve reiniciar o pod"
+					},
+					"response": []
+				},
+				{
+					"name": "Readiness Probe (Public)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/v1/health/readiness",
+							"host": ["{{baseURL}}"],
+							"path": ["v1", "health", "readiness"]
+						},
+						"description": "Kubernetes readiness probe.\n\n**Pergunta:** A aplicação está pronta para receber tráfego?\n\n**Verifica:**\n- Database conectado\n\n**Uso:**\n- Kubernetes decide se deve enviar tráfego"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints de verificação de saúde da aplicação.\n\n**Para Kubernetes:**\n- /health/liveness → Reinicia se falhar\n- /health/readiness → Remove do load balancer se falhar"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Script executado antes de cada requisição",
+					"// Útil para renovar tokens automaticamente"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Script executado após cada requisição",
+					"// Útil para validações automáticas"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseURL",
+			"value": "http://localhost:3000",
+			"type": "default"
+		},
+		{
+			"key": "accessToken",
+			"value": "",
+			"type": "secret"
+		},
+		{
+			"key": "refreshToken",
+			"value": "",
+			"type": "secret"
+		},
+		{
+			"key": "userId",
+			"value": "",
+			"type": "default"
+		},
+		{
+			"key": "userRole",
+			"value": "",
+			"type": "default"
+		},
+		{
+			"key": "adminEmail",
+			"value": "admin@library.com",
+			"type": "default"
+		},
+		{
+			"key": "adminPassword",
+			"value": "admin123",
+			"type": "secret"
+		},
+		{
+			"key": "librarianEmail",
+			"value": "librarian@library.com",
+			"type": "default"
+		},
+		{
+			"key": "librarianPassword",
+			"value": "librarian123",
+			"type": "secret"
+		},
+		{
+			"key": "memberEmail",
+			"value": "member@library.com",
+			"type": "default"
+		},
+		{
+			"key": "memberPassword",
+			"value": "member123",
+			"type": "secret"
+		}
+	]
+}

@@ -59,6 +59,7 @@
 - [Funcionalidades](#-funcionalidades-principais)
 - [Enterprise Features](#-enterprise-features)
 - [Documentação](#-documentação-completa)
+- [Postman Collection](#-postman-collection)
 - [Por Que Este Projeto?](#-por-que-este-projeto)
 - [Papéis e Permissões](#-papéis-e-permissões)
 - [Fluxo de Uso](#-fluxo-de-uso-típico)
@@ -277,6 +278,85 @@ Este projeto possui documentação extensa (1000+ linhas) cobrindo todos os aspe
   - Scheduled Jobs (Cronjobs)
   - Notificações em background
   - RabbitMQ vs Kafka
+  - [⚡ Quick Start Mensageria](docs/MESSAGING-QUICKSTART.md)
+  
+- **[📊 Status do Projeto](docs/COMPLETED-FEATURES.md)** - Progresso e métricas
+  - 11 fases completadas
+  - Cobertura de testes por módulo
+  - Próximos passos recomendados
+  
+- **[🚀 Quick Start](docs/QUICK-START.md)** - Setup rápido
+  - Guia passo a passo
+  - Exemplos de requisições
+  - Troubleshooting
+
+## 📮 Postman Collection
+
+**Collection completa e pronta para uso com 40+ endpoints!** 🚀
+
+Agora você não precisa criar as requisições manualmente no Postman. Tudo já está configurado:
+
+### 📦 O Que Está Incluído?
+
+- ✅ **40+ endpoints** organizados por módulo (Auth, Books, Authors, Categories, Loans, Reservations, Health)
+- ✅ **Bodies de exemplo** em todas as requisições POST/PATCH
+- ✅ **Autenticação JWT automática** - Os tokens são salvos automaticamente ao fazer login
+- ✅ **Filtros e query params** pré-configurados
+- ✅ **Variáveis da collection** prontas e isoladas (não afetam outras collections!)
+- ✅ **Scripts de teste** para capturar tokens automaticamente
+- ✅ **Documentação** em cada endpoint
+
+### 🚀 Como Usar (2 passos)
+
+1. **Importar a Collection:**
+   - Abra o Postman
+   - Clique em **Import**
+   - Selecione o arquivo [`postman-collection.json`](postman-collection.json)
+   - ✅ Pronto! Todas as variáveis já vêm configuradas dentro da collection
+
+2. **Começar a testar:**
+   - Execute `Auth → Login` para autenticar
+   - Os tokens serão salvos automaticamente
+   - Use qualquer outro endpoint normalmente! 🎉
+
+### 📚 Estrutura da Collection
+
+```
+📁 Library Management System - NestJS
+├── 📁 Auth (4 endpoints)
+│   ├── Register, Login, Refresh Token, Get Profile
+├── 📁 Books (5 endpoints)
+│   ├── Create, List (com filtros), Get, Update, Delete
+├── 📁 Authors (5 endpoints)
+├── 📁 Categories (5 endpoints)
+├── 📁 Loans (6 endpoints)
+│   ├── Create, List, Get, Stats, Return, Renew
+├── 📁 Reservations (6 endpoints)
+│   ├── Create, List, Get, Queue, Cancel, Fulfill
+└── 📁 Health (3 endpoints)
+    ├── Complete, Liveness, Readiness
+```
+
+### 📖 Documentação Detalhada
+
+Para guia completo de uso, filtros, troubleshooting e dicas:
+
+**→ [POSTMAN-GUIDE.md](POSTMAN-GUIDE.md)** - Guia completo do Postman Collection
+
+### 🎯 Exemplo Rápido
+
+```bash
+# 1. Importar collection no Postman (arquivo: postman-collection.json)
+# 2. Executar:
+Auth → Login (Public)
+
+# ✅ Tokens salvos automaticamente nas variáveis da collection!
+# Agora todos os outros endpoints já funcionam com autenticação
+```
+
+**Arquivos:**
+- [`postman-collection.json`](postman-collection.json) - Collection completa com variáveis isoladas
+- [`POSTMAN-GUIDE.md`](POSTMAN-GUIDE.md) - Guia de uso completo
   - [⚡ Quick Start Mensageria](docs/MESSAGING-QUICKSTART.md)
   
 - **[📊 Status do Projeto](docs/COMPLETED-FEATURES.md)** - Progresso e métricas
