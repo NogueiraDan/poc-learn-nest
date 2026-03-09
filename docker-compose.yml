@@ -75,10 +75,13 @@ services:
 volumes:
   postgres_data:
     driver: local
+    name: poc-learn-nest-postgres-data
   pgadmin_data:
     driver: local
+    name: poc-learn-nest-pgadmin-data
   rabbitmq_data:
     driver: local
+    name: poc-learn-nest-rabbitmq-data
 
 networks:
   nest-network:
